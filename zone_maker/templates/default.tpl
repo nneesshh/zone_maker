@@ -4,10 +4,10 @@
   <!--开服时间,正式环境从DB配置读取-->
   <open_time>2023-09-26 00:30:00</open_time>
   <!--跨服逻辑服务器-->
-  <cross>{{ concat 1002 config.zone_id }}</cross>
+  <cross>1002{{ config.zone_id }}</cross>
   <!--跨服社交玩法服务器节点-->
   <!--跨服协会服务器节点-->
-  <guild>1012500</guild>
+  <guild>1012{{ config.zone_id }}</guild>
   <!--跨服包含的区-->
   <zones>5001,5002,5003,5004,5005,5006,5007</zones>
   <!--合并的区-->
