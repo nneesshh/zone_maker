@@ -1,6 +1,8 @@
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
 
+use handlebars::handlebars_helper;
+
 use crate::db_access::{MySqlAccess, MySqlAddr, SqlPreparedParams};
 use crate::sqls;
 
@@ -47,6 +49,14 @@ impl MySqlFormatter {
         //
         let mut reg = handlebars::Handlebars::new();
         reg.set_strict_mode(true);
+        handlebars_helper!(concat: |x: u64, y: u64| {
+            //
+            std::format!("{}{}", x, y)
+        });
+
+        //
+        reg.register_helper("concat", Box::new(concat));
+
         reg.register_template_string("zone_xml", self.template_contents.as_str())
             .unwrap();
 

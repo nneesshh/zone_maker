@@ -4,7 +4,7 @@
   <!--开服时间,正式环境从DB配置读取-->
   <open_time>2023-09-26 00:30:00</open_time>
   <!--跨服逻辑服务器-->
-  <cross>{{ plus 1002 config.zone_id }}</cross>
+  <cross>{{ concat 1002 config.zone_id }}</cross>
   <!--跨服社交玩法服务器节点-->
   <!--跨服协会服务器节点-->
   <guild>1012500</guild>
