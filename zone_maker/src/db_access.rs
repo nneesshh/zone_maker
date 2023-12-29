@@ -40,19 +40,6 @@ pub struct MySqlAddr {
     pub dbname: String,
 }
 
-impl MySqlAddr {
-    ///
-    pub fn new() -> Self {
-        Self {
-            user: "root".to_owned(),
-            password: "123456".to_owned(),
-            host: "127.0.0.1".to_owned(),
-            port: 3306,
-            dbname: "mysql".to_owned(),
-        }
-    }
-}
-
 ///
 pub struct SqlRow {
     pub inner: Row,
@@ -997,13 +984,13 @@ mod test {
 
     #[test]
     fn msyql_query() {
-        let mut db_addr = MySqlAddr::new();
-        db_addr.user = "root".to_owned();
-        db_addr.password = "123456".to_owned();
-        db_addr.host = "localhost".to_owned();
-        db_addr.port = 3306_u16;
-        db_addr.dbname = "test_gpaas".to_owned();
-
+        let db_addr = MySqlAddr {
+            user: "root".to_owned(),
+            password: "123456".to_owned(),
+            host: "localhost".to_owned(),
+            port: 3306_u16,
+            dbname: "test_gpaas".to_owned(),
+        };
         let url = std::format!(
             "mysql://{}:{}@{}:{}/{}",
             db_addr.user,
@@ -1028,6 +1015,7 @@ mod test {
             let mut params = SqlPreparedParams::new();
             params.add_uint64(5001);
 
+            params.add_uint64(4);
             params.add_uint64(20001);
             params.add_uint64(8888);
             params.add_string("mysql://db_url");
@@ -1038,6 +1026,7 @@ mod test {
             params.add_null(); // null blob?
             params.add_null(); // null timestamp?
 
+            params.add_uint64(4);
             params.add_uint64(20001);
             params.add_uint64(8888);
             params.add_string("mysql://db_url");

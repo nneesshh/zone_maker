@@ -12,7 +12,8 @@ pub const SQL_INSERT_ZONE: &str = r#"
         `test_blob`,
         `test_timestamp`
     ) 
-    VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE 
+    VALUES(?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE 
+        `group_id`=?,
         `gw_port`=?,
         `http_port`=?,
         `db_url`=?,

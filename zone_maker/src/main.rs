@@ -6,8 +6,7 @@ mod db_access;
 mod sqls;
 use db_access::MySqlAddr;
 
-mod mysql_formatter;
-mod toml_formatter;
+mod formatter;
 
 #[derive(clap::Parser, Debug)]
 #[command(author, version, about, verbatim_doc_comment, long_about = None, disable_help_flag = true, arg_required_else_help = true)]
@@ -54,6 +53,7 @@ struct ZoneMaker {
 enum Commands {
     INI(Box<Toml>),
     DB(Box<MySqlAddr>),
+    XLSX(Box<Excel>),
 }
 
 ///
@@ -67,6 +67,19 @@ pub struct Toml {
         verbatim_doc_comment
     )]
     pub ini_path: String,
+}
+
+///
+#[derive(clap::Args, Debug)]
+pub struct Excel {
+    #[arg(
+        short = 'x',
+        long,
+        default_value = "res/zone.ini",
+        value_name = "XLSX_FILE_PATH",
+        verbatim_doc_comment
+    )]
+    pub xlsx_path: String,
 }
 
 fn main() {
@@ -90,7 +103,7 @@ fn main() {
 
             // ini
             let ini_file_path = PathBuf::from(toml.ini_path);
-            let mut formatter = toml_formatter::TomlFormatter::new(
+            let mut formatter = formatter::toml_formatter::TomlFormatter::new(
                 ini_file_path,
                 template_file_path,
                 output_file_path,
@@ -107,8 +120,26 @@ fn main() {
             );
 
             // db
-            let mut formatter = mysql_formatter::MySqlFormatter::new(
+            let mut formatter = formatter::mysql_formatter::MySqlFormatter::new(
                 *mysql_addr,
+                template_file_path,
+                output_file_path,
+            );
+            formatter.format();
+
+            log::info!("zone maker generate config to ({:?})", args.output_path);
+        }
+
+        Commands::XLSX(excel) => {
+            log::info!(
+                "zone maker start to generate config from xls: {:?} ...",
+                excel
+            );
+
+            // xlsx
+            let xlsx_file_path = PathBuf::from(excel.xlsx_path);
+            let mut formatter = formatter::excel_formatter::ExcelFormatter::new(
+                xlsx_file_path,
                 template_file_path,
                 output_file_path,
             );
