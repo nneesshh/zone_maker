@@ -1,0 +1,19 @@
+[package]
+name = "zone_maker"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4"
+hashbrown = "*"
+log = "*"
+serde = "1.0.0"
+serde_json = "1.0.39"
+
+clap = { version = "4", features = ["derive", "env"] }
+handlebars = { path = "../handlebars-rust" }
+log4rs = { path = "../log4rs" }
+mysql = { path = "../rust-mysql-simple", default-features = false, features = ["minimal", "rustls-tls"] }
+toml = { path = "../toml/crates/toml" }
