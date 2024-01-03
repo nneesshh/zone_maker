@@ -20,7 +20,8 @@
                 }
             },
             //"args": ["ini", "-i", "res/zone.ini", "templates/default.tpl"],
-            "args": ["db", "-h", "127.0.0.1", "-u", "root", "-p", "123456", "-D", "test_gpaas", "templates/default.tpl"],
+            //"args": ["db", "-h", "127.0.0.1", "-u", "root", "-p", "123456", "-D", "test_gpaas", "templates/default.tpl"],
+            "args": ["excel", "-i", "res/文竹海外-配置源.xlsx", "templates/default.tpl"],
             "cwd": "${workspaceFolder}"
         },
         {

@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="gb2312"?>
-<config zone="{{ config.zone_id }}" group="{{ config.group_id }}">
+<config zone="{{ serverid }}" group="{{ platform_id }}">
   <nodes>1001,1002,1003,1004,1005,1006,1008</nodes>
   <!--开服时间,正式环境从DB配置读取-->
-  <open_time>2023-09-26 00:30:00</open_time>
+  <open_time>{{ first_open_time }}</open_time>
   <!--跨服逻辑服务器-->
-  <cross>1002{{ config.zone_id }}</cross>
+  <cross>1002{{ serverid }}</cross>
   <!--跨服社交玩法服务器节点-->
   <!--跨服协会服务器节点-->
-  <guild>1012{{ config.zone_id }}</guild>
+  <guild>1012{{ serverid }}</guild>
   <!--跨服包含的区-->
-  <zones>5001,5002,5003,5004,5005,5006,5007</zones>
+  <zones>5001,{{ merge_list }}</zones>
   <!--合并的区-->
-  <merges>5002,5003,5004,5005,5006,5007</merges>
+  <merges>{{ merge_list }}</merges>
   <!--合服次数-->
-  <merge_times>1</merge_times>
+  <merge_times>{{ merge_times }}</merge_times>
   <!--合服时间-->
-  <merge_date>2023-10-23 08:39:04</merge_date>
+  <merge_date>{{ merge_date }}</merge_date>
   <!--是否检查登录合服-->
   <merge_check>1</merge_check>
   <!--是否检查登录session-->
@@ -31,7 +31,7 @@
   <!--是否开启gm命令-->
   <gm>false</gm>
   <!--本机公网ip-->
-  <local_public_ip>43.157.137.23</local_public_ip>
+  <local_public_ip>{{ local_public_ip }}</local_public_ip>
   <!--本机内网ip-->
   <local_private_ip>10.40.0.48</local_private_ip>
   <!--16字节加密密钥(BASE64编码)-->

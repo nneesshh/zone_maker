@@ -13,3 +13,6 @@
 [submodule "handlebars-rust"]
 	path = handlebars-rust
 	url = https://github.com/nneesshh/handlebars-rust
+[submodule "iso8601-duration"]
+	path = iso8601-duration
+	url = https://github.com/nneesshh/iso8601-duration

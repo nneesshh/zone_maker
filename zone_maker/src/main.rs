@@ -6,7 +6,9 @@ mod db_access;
 mod sqls;
 use db_access::MySqlAddr;
 
+//mod field_mapper;
 mod formatter;
+mod template_writer;
 
 #[derive(clap::Parser, Debug)]
 #[command(author, version, about, verbatim_doc_comment, long_about = None, disable_help_flag = true, arg_required_else_help = true)]
@@ -27,6 +29,17 @@ struct ZoneMaker {
     )]
     log_path: String,
 
+    /// Zone id
+    #[arg(
+        short = 'z',
+        long,
+        default_value = "0",
+        value_name = "ZONE_ID(0 for all)",
+        global = true,
+        verbatim_doc_comment
+    )]
+    zone_id: String,
+
     /// File path for log config
     #[arg(
         short = 'o',
@@ -38,7 +51,7 @@ struct ZoneMaker {
     )]
     output_path: String,
 
-    /// File path for log config
+    /// File path for template
     #[arg(
         index = 1,
         default_value = "templates/default.tpl",
@@ -53,7 +66,7 @@ struct ZoneMaker {
 enum Commands {
     INI(Box<Toml>),
     DB(Box<MySqlAddr>),
-    XLSX(Box<Excel>),
+    EXCEL(Box<Excel>),
 }
 
 ///
@@ -73,9 +86,9 @@ pub struct Toml {
 #[derive(clap::Args, Debug)]
 pub struct Excel {
     #[arg(
-        short = 'x',
+        short = 'i',
         long,
-        default_value = "res/zone.ini",
+        default_value = "res/default.xlsx",
         value_name = "XLSX_FILE_PATH",
         verbatim_doc_comment
     )]
@@ -90,6 +103,7 @@ fn main() {
     let _ = log4rs::init_file(args.log_path, Default::default());
 
     //
+    let zone_id = args.zone_id.as_str();
     let template_file_path = PathBuf::from(&args.template_path);
     let output_file_path = PathBuf::from(&args.output_path);
 
@@ -130,15 +144,16 @@ fn main() {
             log::info!("zone maker generate config to ({:?})", args.output_path);
         }
 
-        Commands::XLSX(excel) => {
+        Commands::EXCEL(excel) => {
             log::info!(
-                "zone maker start to generate config from xls: {:?} ...",
+                "zone maker start to generate config from excel: {:?} ...",
                 excel
             );
 
             // xlsx
             let xlsx_file_path = PathBuf::from(excel.xlsx_path);
             let mut formatter = formatter::excel_formatter::ExcelFormatter::new(
+                zone_id,
                 xlsx_file_path,
                 template_file_path,
                 output_file_path,

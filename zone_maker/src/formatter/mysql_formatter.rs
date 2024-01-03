@@ -64,7 +64,7 @@ impl MySqlFormatter {
         let config: Config = read_config_from_db(&self.db_addr).unwrap();
 
         //
-        let mut data = serde_json::value::Map::new();
+        let mut data = serde_json::Map::new();
         data.insert("config".to_owned(), handlebars::to_json(&config));
         let zone_xml = reg.render("zone_xml", &data).unwrap();
 

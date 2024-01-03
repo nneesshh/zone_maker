@@ -59,7 +59,7 @@ impl TomlFormatter {
             .unwrap();
 
         //
-        let mut data = serde_json::value::Map::new();
+        let mut data = serde_json::Map::new();
         data.insert("config".to_owned(), handlebars::to_json(&self.config));
         let zone_xml = reg.render("zone_xml", &data).unwrap();
 
