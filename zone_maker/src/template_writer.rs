@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use handlebars::handlebars_helper;
+
 ///
 //pub const ZONE_ID:& str = "zone_id";
 pub const ZONE_ID: &str = "serverid";
@@ -14,6 +16,13 @@ pub fn write_one_zone(
     //
     let mut reg = handlebars::Handlebars::new();
     reg.set_strict_mode(true);
+    handlebars_helper!(add: |x: u64, y: u64| {
+        //
+        std::format!("{}", x + y)
+    });
+
+    //
+    reg.register_helper("add", Box::new(add));
     reg.register_template_string("zone_xml", template_contents)
         .unwrap();
 

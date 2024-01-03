@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="gb2312"?>
-<config zone="{{ serverid }}" group="{{ platform_id }}">
+<config zone="{{ add serverid 999 }}" group="{{ platform_id }}">
   <nodes>1001,1002,1003,1004,1005,1006,1008</nodes>
   <!--开服时间,正式环境从DB配置读取-->
   <open_time>{{ first_open_time }}</open_time>

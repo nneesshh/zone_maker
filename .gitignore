@@ -6,3 +6,5 @@ zone_maker/target/
 zone_maker/log/
 
 zone_maker/out/
+
+bin/
