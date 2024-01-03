@@ -38,6 +38,34 @@ impl CellData {
             is_key_column: false,
         }
     }
+
+    ///
+    pub fn to_json_value(&self) -> serde_json::Value {
+        match self.cell_type {
+            CellType::String => {
+                //
+                serde_json::Value::from(self.string_val.as_str())
+            }
+            CellType::Integer => {
+                //
+                serde_json::Value::from(self.integer_val)
+            }
+            CellType::Float => {
+                //
+                let n_floor = self.float_val.floor();
+                if n_floor == self.float_val {
+                    // to i64
+                    serde_json::Value::from(n_floor as i64)
+                } else {
+                    serde_json::Value::from(self.float_val)
+                }
+            }
+            _ => {
+                // null
+                serde_json::Value::Null
+            }
+        }
+    }
 }
 
 /*

@@ -8,7 +8,7 @@ pub struct FieldInfo {
     pub desc: String,
     pub cell_type: CellType,
 
-    pub is_ascii: bool,
+    pub is_key: bool,
 }
 
 impl FieldInfo {
@@ -20,7 +20,7 @@ impl FieldInfo {
             desc: "".to_owned(),
             cell_type: CellType::Unknown,
 
-            is_ascii: false,
+            is_key: false,
         }
     }
 }
@@ -47,7 +47,7 @@ impl ExcelTitle {
 
     ///
     #[allow(dead_code)]
-    pub fn get_field_info_by_name_mut(&mut self, name:&str) -> Option<&mut FieldInfo> {
+    pub fn get_field_info_by_name_mut(&mut self, name: &str) -> Option<&mut FieldInfo> {
         let column_opt = self.column_table.get(name);
         if let Some(col) = column_opt {
             self.field_info_table.get_mut(col)

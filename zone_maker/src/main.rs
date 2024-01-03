@@ -29,6 +29,17 @@ struct ZoneMaker {
     )]
     log_path: String,
 
+    /// Key name of zone field
+    #[arg(
+        short = 'k',
+        long,
+        default_value = "serverid",
+        value_name = "KEY_NAME_OF_ZONE",
+        global = true,
+        verbatim_doc_comment
+    )]
+    key_name: String,
+
     /// Zone id
     #[arg(
         short = 'z',
@@ -38,7 +49,7 @@ struct ZoneMaker {
         global = true,
         verbatim_doc_comment
     )]
-    zone_id: String,
+    zone_id: i32,
 
     /// File path for log config
     #[arg(
@@ -103,7 +114,8 @@ fn main() {
     let _ = log4rs::init_file(args.log_path, Default::default());
 
     //
-    let zone_id = args.zone_id.as_str();
+    let key_name = args.key_name.as_str();
+    let zone_id = args.zone_id;
     let template_file_path = PathBuf::from(&args.template_path);
     let output_file_path = PathBuf::from(&args.output_path);
 
@@ -153,6 +165,7 @@ fn main() {
             // xlsx
             let xlsx_file_path = PathBuf::from(excel.xlsx_path);
             let mut formatter = formatter::excel_formatter::ExcelFormatter::new(
+                key_name,
                 zone_id,
                 xlsx_file_path,
                 template_file_path,

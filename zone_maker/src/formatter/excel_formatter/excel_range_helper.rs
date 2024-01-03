@@ -2,8 +2,6 @@ use std::path::PathBuf;
 
 use calamine::{open_workbook, DataType, Range, Reader, Xlsx};
 
-use crate::template_writer::ZONE_ID;
-
 use super::excel_cell_data::{CellData, CellType};
 use super::excel_field_info::{ExcelTitle, FieldInfo};
 use super::excel_rows::{ExcelRow, ExcelRows};
@@ -12,7 +10,7 @@ use super::json_rows::{JsonRow, JsonRows};
 const START_ROW: usize = 3_usize; // the 3th row
 
 ///
-pub fn read_json_rows_from_xlsx(path: &PathBuf) -> JsonRows {
+pub fn read_json_rows_from_xlsx(key_name:&str, path: &PathBuf) -> JsonRows {
     //
     let mut json_rows = JsonRows {
         key_2_row_table: hashbrown::HashMap::new(),
@@ -39,7 +37,7 @@ pub fn read_json_rows_from_xlsx(path: &PathBuf) -> JsonRows {
         );
 
         //
-        fill_json_rows(&range, &mut json_rows);
+        fill_json_rows(key_name, &range, &mut json_rows);
     } else if let Some(range_ret) = workbook.worksheet_range_at(sheet_idx) {
         match range_ret {
             Ok(range) => {
@@ -56,7 +54,7 @@ pub fn read_json_rows_from_xlsx(path: &PathBuf) -> JsonRows {
                 );
 
                 //
-                fill_json_rows(&range, &mut json_rows);
+                fill_json_rows(key_name, &range, &mut json_rows);
             }
             Err(err) => {
                 //
@@ -76,15 +74,15 @@ pub fn read_json_rows_from_xlsx(path: &PathBuf) -> JsonRows {
     json_rows
 }
 
-fn fill_json_rows(range: &Range<DataType>, json_rows: &mut JsonRows) {
+fn fill_json_rows(key_name: &str, range: &Range<DataType>, json_rows: &mut JsonRows) {
     // title
-    let mut title: ExcelTitle = read_excel_title(range).unwrap();
+    let mut title: ExcelTitle = read_excel_title(key_name, range).unwrap();
 
     // data
     let excel_rows = read_excel_rows(&mut title, range);
 
     // key field info
-    let key = ZONE_ID.to_owned();
+    let key = key_name.to_owned();
     let key_field_info_opt = title.get_field_info_by_name(&key);
     if let Some(key_field_info) = key_field_info_opt {
         //
@@ -136,40 +134,13 @@ fn fill_json_row(title: &ExcelTitle, _row: u32, cells: &ExcelRow, json_row: &mut
         if let Some(field_info) = field_info_opt {
             // fill json value
             let name = field_info.name.clone();
-            let json_value = make_json_value(cell);
+            let json_value = cell.to_json_value();
             json_row.value_table.insert(name, json_value);
         }
     }
 }
 
-fn make_json_value(cell: &CellData) -> serde_json::Value {
-    match cell.cell_type {
-        CellType::String => {
-            //
-            serde_json::Value::from(cell.string_val.as_str())
-        }
-        CellType::Integer => {
-            //
-            serde_json::Value::from(cell.integer_val)
-        }
-        CellType::Float => {
-            //
-            let n_floor = cell.float_val.floor();
-            if n_floor == cell.float_val {
-                // to i64
-                serde_json::Value::from(n_floor as i64)
-            } else {
-                serde_json::Value::from(cell.float_val)
-            }
-        }
-        _ => {
-            // null
-            serde_json::Value::Null
-        }
-    }
-}
-
-fn read_excel_title(range: &Range<DataType>) -> Option<ExcelTitle> {
+fn read_excel_title(key_name:&str, range: &Range<DataType>) -> Option<ExcelTitle> {
     //
     let start_row_idx = (START_ROW - 1) as u32;
     let (height, width) = range.get_size();
@@ -235,7 +206,14 @@ fn read_excel_title(range: &Range<DataType>) -> Option<ExcelTitle> {
                 field_info.name = s.to_string();
                 field_info.desc = "".to_owned();
                 field_info.cell_type = CellType::Unknown;
-                field_info.is_ascii = false;
+
+                //
+                if key_name == s {
+                    field_info.is_key = true;
+
+                } else {
+                    field_info.is_key = false;
+                }
 
                 field_info_table.insert(col, field_info);
 
@@ -277,10 +255,12 @@ fn check_cell_type(row: u32, title: &ExcelTitle, data: &CellData) -> bool {
     if let Some(field_info) = field_info_opt {
         match field_info.cell_type {
             CellType::Unknown => {
-                let err_msg = std::format!("\r\n[row={}] check cell({:?}) failed!!! \r\n {:?}!!!",
-                row,
-                data,
-                field_info);
+                let err_msg = std::format!(
+                    "\r\n[row={}] check cell({:?}) failed!!! \r\n {:?}!!!",
+                    row,
+                    data,
+                    field_info
+                );
                 log::error!("{}", err_msg);
                 std::panic!("{}", err_msg);
             }
@@ -500,14 +480,13 @@ fn read_excel_rows(title: &mut ExcelTitle, range: &Range<DataType>) -> ExcelRows
         }
 
         // collect and clear last row at beginning
-        if !is_row_empty { 
+        if !is_row_empty {
             assert!(cell_table.len() > 0);
             row_table.insert(row, ExcelRow { cell_table });
 
             // new row cells
             cell_table = std::collections::BTreeMap::<u32, CellData>::new();
-        }
-        else {
+        } else {
             // force finish when empty row occurred
             log::info!(
                 "\r\n>>>> <<<< [row={}] empty row occurred, break. >>>> <<<<",
