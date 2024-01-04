@@ -1,4 +1,4 @@
-use crate::template_writer::{json_value_to_double, json_value_to_int64, json_value_to_string};
+use crate::json_helper::{to_double, to_int64, to_string};
 
 ///
 pub struct JsonRows {
@@ -42,7 +42,7 @@ impl JsonRow {
     #[allow(dead_code)]
     pub fn get_value_as_string(&self, key: &str) -> Option<String> {
         if let Some(val) = self.value_table.get(key) {
-            let s = json_value_to_string(val);
+            let s = to_string(val);
             Some(s)
         } else {
             //
@@ -54,7 +54,7 @@ impl JsonRow {
     #[allow(dead_code)]
     pub fn get_value_as_int64(&self, key: &str) -> Option<i64> {
         if let Some(val) = self.value_table.get(key) {
-            let n = json_value_to_int64(val);
+            let n = to_int64(val);
             Some(n)
         } else {
             //
@@ -66,7 +66,7 @@ impl JsonRow {
     #[allow(dead_code)]
     pub fn get_value_as_double(&self, key: &str) -> Option<f64> {
         if let Some(val) = self.value_table.get(key) {
-            let f = json_value_to_double(val);
+            let f = to_double(val);
             Some(f)
         } else {
             //

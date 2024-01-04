@@ -2,11 +2,14 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+mod json_helper;
+mod toml_helper;
+
 mod db_access;
 mod sqls;
 use db_access::MySqlAddr;
 
-//mod field_mapper;
+mod field_aliase;
 mod formatter;
 mod template_writer;
 
@@ -55,7 +58,7 @@ struct ZoneMaker {
     #[arg(
         short = 'o',
         long,
-        default_value = "out/dragon.xml",
+        default_value = "out/.xml",
         value_name = "OUTPUT_FILE_PATH",
         global = true,
         verbatim_doc_comment
@@ -129,14 +132,15 @@ fn main() {
 
             // ini
             let ini_file_path = PathBuf::from(toml.ini_path);
-            let mut formatter = formatter::toml_formatter::TomlFormatter::new(
+            let formatter = formatter::toml_formatter::TomlFormatter::new(
+                key_name,
                 ini_file_path,
                 template_file_path,
                 output_file_path,
             );
-            formatter.format();
+            let full_path = formatter.format();
 
-            log::info!("zone maker generate config to ({:?})", args.output_path);
+            log::info!("zone maker generate config to ({:?})", full_path);
         }
 
         Commands::DB(mysql_addr) => {
@@ -146,14 +150,14 @@ fn main() {
             );
 
             // db
-            let mut formatter = formatter::mysql_formatter::MySqlFormatter::new(
+            let formatter = formatter::mysql_formatter::MySqlFormatter::new(
                 *mysql_addr,
                 template_file_path,
                 output_file_path,
             );
-            formatter.format();
+            let full_path = formatter.format();
 
-            log::info!("zone maker generate config to ({:?})", args.output_path);
+            log::info!("zone maker generate config to ({:?})", full_path);
         }
 
         Commands::EXCEL(excel) => {
@@ -164,16 +168,16 @@ fn main() {
 
             // xlsx
             let xlsx_file_path = PathBuf::from(excel.xlsx_path);
-            let mut formatter = formatter::excel_formatter::ExcelFormatter::new(
+            let formatter = formatter::excel_formatter::ExcelFormatter::new(
                 key_name,
                 zone_id,
                 xlsx_file_path,
                 template_file_path,
                 output_file_path,
             );
-            formatter.format();
+            let full_path = formatter.format();
 
-            log::info!("zone maker generate config to ({:?})", args.output_path);
+            log::info!("zone maker generate config to ({:?})", full_path);
         }
     }
 }

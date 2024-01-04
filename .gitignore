@@ -8,3 +8,5 @@ zone_maker/log/
 zone_maker/out/
 
 bin/
+
+zone_maker/.vscode/

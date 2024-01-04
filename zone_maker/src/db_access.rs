@@ -7,8 +7,9 @@ use std::ops::Index;
 use std::rc::Rc;
 
 use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
-use mysql::prelude::*;
-use mysql::*;
+use mysql::{
+    from_row, prelude::Queryable, Params, Pool, PooledConn, Result, Row, Statement, Value,
+};
 
 const EXEC_RETRY_MAX: i32 = 2;
 const RETRY_DELAY: std::time::Duration = std::time::Duration::from_millis(3000);

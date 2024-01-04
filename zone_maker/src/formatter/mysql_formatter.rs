@@ -5,11 +5,12 @@ use handlebars::handlebars_helper;
 
 use crate::db_access::{MySqlAccess, MySqlAddr, SqlPreparedParams};
 use crate::sqls;
+use crate::template_writer::write_one_zone;
 
 ///
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct Config {
-    zone_id: u64,
+    zone_id: i32,
     group_id: u32,
     gw_port: u16,
     http_port: u16,
@@ -45,7 +46,7 @@ impl MySqlFormatter {
     }
 
     ///
-    pub fn format(&mut self) {
+    pub fn format(&self) -> std::path::PathBuf {
         //
         let mut reg = handlebars::Handlebars::new();
         reg.set_strict_mode(true);
@@ -66,13 +67,17 @@ impl MySqlFormatter {
         //
         let mut data = serde_json::Map::new();
         data.insert("config".to_owned(), handlebars::to_json(&config));
-        let zone_xml = reg.render("zone_xml", &data).unwrap();
 
-        // write to file
-        let output_prefix = self.output_path.parent().unwrap();
-        std::fs::create_dir_all(output_prefix).unwrap();
+        let zone = config.zone_id.to_string();
 
-        std::fs::write(&self.output_path, zone_xml.as_bytes()).unwrap();
+        //
+        write_one_zone(
+            zone.as_str(),
+            &self.output_path,
+            self.template_contents.as_str(),
+            &data,
+            false,
+        )
     }
 }
 
@@ -109,7 +114,7 @@ fn read_config_from_db(db_addr: &MySqlAddr) -> Option<Config> {
     if rows.len() > 0 {
         let row = &rows[0];
         let mut idx: usize = 0;
-        let zone_id = row.get_uint64(&mut idx).unwrap();
+        let zone_id = row.get_uint64(&mut idx).unwrap() as i32;
         let group_id = row.get_uint64(&mut idx).unwrap_or(0);
         let gw_port = row.get_uint64(&mut idx).unwrap();
         let http_port = row.get_uint64(&mut idx).unwrap();

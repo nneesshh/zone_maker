@@ -1,31 +1,23 @@
 use std::{
     io::{BufReader, Read},
     path::PathBuf,
+    str::FromStr,
 };
 
-///
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct Config {
-    zone_id: u64,
-    group_id: u32,
-    gw_port: u16,
-    http_port: u16,
-    db_url: String,
-    redis_ip: String,
-    redis_port: u16,
-    web_url: String,
-}
+use crate::template_writer::write_one_zone;
+use crate::{field_aliase::AliaseMapper, toml_helper};
 
 ///
 pub struct TomlFormatter {
-    config: Config,
+    key_name: String,
+    field_table: toml::Table,
     template_contents: String,
     output_path: PathBuf,
 }
 
 impl TomlFormatter {
     ///
-    pub fn new(ini_path: PathBuf, tpl_path: PathBuf, output_path: PathBuf) -> Self {
+    pub fn new(key_name: &str, ini_path: PathBuf, tpl_path: PathBuf, output_path: PathBuf) -> Self {
         // ini -- read toml to contents
         let ini_file = std::fs::File::open(&ini_path).unwrap();
         let mut ini_buf_reader = BufReader::new(ini_file);
@@ -41,32 +33,44 @@ impl TomlFormatter {
             .unwrap();
 
         //
-        let config: Config = toml::from_str(ini_contents.as_str()).unwrap();
+        let field_table = toml::Table::from_str(ini_contents.as_str()).unwrap();
 
         Self {
-            config,
+            key_name: key_name.to_owned(),
+            field_table,
             template_contents,
             output_path,
         }
     }
 
-    ///
-    pub fn format(&mut self) {
-        //
-        let mut reg = handlebars::Handlebars::new();
-        reg.set_strict_mode(true);
-        reg.register_template_string("zone_xml", self.template_contents.as_str())
-            .unwrap();
-
-        //
+    /// return full_path
+    pub fn format(&self) -> std::path::PathBuf {
+        // prepare data
         let mut data = serde_json::Map::new();
-        data.insert("config".to_owned(), handlebars::to_json(&self.config));
-        let zone_xml = reg.render("zone_xml", &data).unwrap();
+        for (key, val) in &self.field_table {
+            //
+            data.insert(key.clone(), toml_helper::to_json(val));
+        }
 
-        // write to file
-        let output_prefix = self.output_path.parent().unwrap();
-        std::fs::create_dir_all(output_prefix).unwrap();
+        // update aliase
+        let aliase_mapper = AliaseMapper::new();
+        aliase_mapper.update(&mut data);
 
-        std::fs::write(&self.output_path, zone_xml.as_bytes()).unwrap();
+        //
+        let mut zone_id = 0_i32;
+        let zone_opt = self.field_table.get(self.key_name.as_str());
+        if let Some(zone) = zone_opt {
+            zone_id = zone.as_integer().unwrap() as i32;
+        }
+        let zone = zone_id.to_string();
+
+        //
+        write_one_zone(
+            zone.as_str(),
+            &self.output_path,
+            self.template_contents.as_str(),
+            &data,
+            false,
+        )
     }
 }

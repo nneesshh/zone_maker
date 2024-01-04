@@ -10,7 +10,7 @@ use super::json_rows::{JsonRow, JsonRows};
 const START_ROW: usize = 3_usize; // the 3th row
 
 ///
-pub fn read_json_rows_from_xlsx(key_name:&str, path: &PathBuf) -> JsonRows {
+pub fn read_json_rows_from_xlsx(key_name: &str, path: &PathBuf) -> JsonRows {
     //
     let mut json_rows = JsonRows {
         key_2_row_table: hashbrown::HashMap::new(),
@@ -140,7 +140,7 @@ fn fill_json_row(title: &ExcelTitle, _row: u32, cells: &ExcelRow, json_row: &mut
     }
 }
 
-fn read_excel_title(key_name:&str, range: &Range<DataType>) -> Option<ExcelTitle> {
+fn read_excel_title(key_name: &str, range: &Range<DataType>) -> Option<ExcelTitle> {
     //
     let start_row_idx = (START_ROW - 1) as u32;
     let (height, width) = range.get_size();
@@ -210,7 +210,6 @@ fn read_excel_title(key_name:&str, range: &Range<DataType>) -> Option<ExcelTitle
                 //
                 if key_name == s {
                     field_info.is_key = true;
-
                 } else {
                     field_info.is_key = false;
                 }

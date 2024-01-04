@@ -1,7 +1,7 @@
 use std::io::{BufReader, Read};
 use std::path::PathBuf;
 
-use crate::template_writer::{write_one_zone};
+use crate::template_writer::write_one_zone;
 
 use self::json_rows::JsonRows;
 
@@ -51,7 +51,7 @@ impl ExcelFormatter {
     }
 
     ///
-    pub fn format(&mut self) {
+    pub fn format(&self) {
         //
         if self.zone_id > 0 {
             // output one zone
@@ -65,6 +65,7 @@ impl ExcelFormatter {
                     &self.output_path,
                     self.template_contents.as_str(),
                     data,
+                    true,
                 );
             } else {
                 log::error!("Zone {} not found", zone);
@@ -84,6 +85,7 @@ impl ExcelFormatter {
                         &self.output_path,
                         self.template_contents.as_str(),
                         data,
+                        true,
                     );
                 } else {
                     log::error!("Key {} field is not found among row!!!", key);
