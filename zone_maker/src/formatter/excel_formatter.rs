@@ -60,7 +60,7 @@ impl ExcelFormatter {
             if let Some(json_row) = json_row_opt {
                 //
                 let data = &json_row.value_table;
-                write_one_zone(
+                let _ = write_one_zone(
                     zone.as_str(),
                     &self.output_path,
                     self.template_contents.as_str(),
@@ -80,7 +80,7 @@ impl ExcelFormatter {
                 if let Some(zone) = zone_opt {
                     //
                     let data = &json_row.value_table;
-                    write_one_zone(
+                    let _ = write_one_zone(
                         zone.as_str(),
                         &self.output_path,
                         self.template_contents.as_str(),

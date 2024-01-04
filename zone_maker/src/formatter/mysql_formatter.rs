@@ -46,7 +46,7 @@ impl MySqlFormatter {
     }
 
     ///
-    pub fn format(&self) -> std::path::PathBuf {
+    pub fn format(&self) {
         //
         let mut reg = handlebars::Handlebars::new();
         reg.set_strict_mode(true);
@@ -71,13 +71,13 @@ impl MySqlFormatter {
         let zone = config.zone_id.to_string();
 
         //
-        write_one_zone(
+        let _ = write_one_zone(
             zone.as_str(),
             &self.output_path,
             self.template_contents.as_str(),
             &data,
             false,
-        )
+        );
     }
 }
 

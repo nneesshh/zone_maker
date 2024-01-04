@@ -44,7 +44,7 @@ impl TomlFormatter {
     }
 
     /// return full_path
-    pub fn format(&self) -> std::path::PathBuf {
+    pub fn format(&self) {
         // prepare data
         let mut data = serde_json::Map::new();
         for (key, val) in &self.field_table {
@@ -65,12 +65,12 @@ impl TomlFormatter {
         let zone = zone_id.to_string();
 
         //
-        write_one_zone(
+        let _ = write_one_zone(
             zone.as_str(),
             &self.output_path,
             self.template_contents.as_str(),
             &data,
             false,
-        )
+        );
     }
 }

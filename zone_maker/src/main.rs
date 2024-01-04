@@ -138,9 +138,7 @@ fn main() {
                 template_file_path,
                 output_file_path,
             );
-            let full_path = formatter.format();
-
-            log::info!("zone maker generate config to ({:?})", full_path);
+            formatter.format();
         }
 
         Commands::DB(mysql_addr) => {
@@ -155,9 +153,7 @@ fn main() {
                 template_file_path,
                 output_file_path,
             );
-            let full_path = formatter.format();
-
-            log::info!("zone maker generate config to ({:?})", full_path);
+            formatter.format();
         }
 
         Commands::EXCEL(excel) => {
@@ -175,9 +171,7 @@ fn main() {
                 template_file_path,
                 output_file_path,
             );
-            let full_path = formatter.format();
-
-            log::info!("zone maker generate config to ({:?})", full_path);
+            formatter.format();
         }
     }
 }
