@@ -55,6 +55,6 @@ pub fn write_one_zone(
     full_path.push(file_name);
     std::fs::write(&full_path, zone_xml.as_bytes()).unwrap();
 
-    log::info!("zone maker write zone config to ({:?})", full_path);
+    log::info!("write zone config to ({:?})", full_path);
     full_path
 }
