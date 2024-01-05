@@ -2,16 +2,18 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-mod json_helper;
-mod toml_helper;
+mod utils;
 
 mod db_access;
 mod sqls;
 use db_access::MySqlAddr;
 
+mod data_source;
+
 mod field_aliase;
 mod formatter;
-mod template_writer;
+
+pub mod template_helper;
 
 #[derive(clap::Parser, Debug)]
 #[command(author, version, about, verbatim_doc_comment, long_about = None, disable_help_flag = true, arg_required_else_help = true)]
@@ -174,4 +176,6 @@ fn main() {
             formatter.format();
         }
     }
+
+    log::info!("zone maker run success.");
 }

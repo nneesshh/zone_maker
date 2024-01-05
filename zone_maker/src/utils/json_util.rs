@@ -132,6 +132,17 @@ pub fn to_double(val: &Json) -> f64 {
     }
 }
 
+/// Erase .0
+pub fn float_to_json(f: f64) -> Json {
+    let n_floor = f.floor();
+    if n_floor == f {
+        // to i64
+        Json::from(n_floor as i64)
+    } else {
+        Json::from(f)
+    }
+}
+
 ///
 pub fn eval_add(x: &Json, y: &Json) -> String {
     if x.is_i64() || x.is_u64() {

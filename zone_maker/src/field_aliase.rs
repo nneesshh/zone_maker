@@ -1,7 +1,9 @@
 use std::io::{BufReader, Read};
 use std::str::FromStr;
 
-use crate::toml_helper;
+use serde_json::Value as Json;
+
+use crate::utils::toml_util;
 
 pub struct AliaseMapper {
     pub aliase_table: hashbrown::HashMap<String, String>,
@@ -23,7 +25,7 @@ impl AliaseMapper {
         //
         let toml_table = toml::Table::from_str(ini_contents.as_str()).unwrap();
         for (key, toml_val) in toml_table {
-            aliase_table.insert(key, toml_helper::to_string(&toml_val));
+            aliase_table.insert(key, toml_util::to_string(&toml_val));
         }
 
         Self { aliase_table }
@@ -39,7 +41,7 @@ impl AliaseMapper {
     }
 
     ///
-    pub fn update(&self, data: &mut serde_json::Map<String, serde_json::Value>) {
+    pub fn update(&self, data: &mut serde_json::Map<String, Json>) {
         //
         for (key, val) in &self.aliase_table {
             let field_aliase = val.as_str();

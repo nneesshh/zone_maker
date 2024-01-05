@@ -1,11 +1,10 @@
-use std::io::{BufReader, Read};
 use std::path::PathBuf;
 
 use handlebars::handlebars_helper;
 
 use crate::db_access::{MySqlAccess, MySqlAddr, SqlPreparedParams};
 use crate::sqls;
-use crate::template_writer::write_one_zone;
+use crate::template_helper::{read_template_contents, write_one_zone};
 
 ///
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -31,12 +30,7 @@ impl MySqlFormatter {
     ///
     pub fn new(db_addr: MySqlAddr, tpl_path: PathBuf, output_path: PathBuf) -> Self {
         // tpl -- read template to contents
-        let tpl_file = std::fs::File::open(&tpl_path).unwrap();
-        let mut template_buf_reader = BufReader::new(tpl_file);
-        let mut template_contents = String::new();
-        template_buf_reader
-            .read_to_string(&mut template_contents)
-            .unwrap();
+        let template_contents = read_template_contents(&tpl_path);
 
         Self {
             db_addr,

@@ -2,6 +2,7 @@ use serde_json::Value as Json;
 use toml::Value as Toml;
 
 ///
+#[allow(dead_code)]
 pub fn to_string(toml_val: &Toml) -> String {
     match toml_val {
         Toml::String(s) => {
@@ -40,6 +41,7 @@ pub fn to_string(toml_val: &Toml) -> String {
 }
 
 /// convert toml value to json value
+#[allow(dead_code)]
 pub fn to_json(toml_val: &Toml) -> Json {
     match toml_val {
         Toml::String(s) => {

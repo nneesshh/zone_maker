@@ -1,0 +1,5 @@
+生成小区配置文件：
+zone_maker excel -i res/文竹海外-配置源.xlsx -o out/dragon.xml templates/default.tpl
+
+生成 supervisor conf
+zone_maker excel -i res/文竹海外-配置源.xlsx -o out/.conf templates/supervisor.tpl

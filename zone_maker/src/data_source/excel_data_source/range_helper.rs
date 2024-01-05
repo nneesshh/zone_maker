@@ -2,10 +2,10 @@ use std::path::PathBuf;
 
 use calamine::{open_workbook, DataType, Range, Reader, Xlsx};
 
-use super::excel_cell_data::{CellData, CellType};
-use super::excel_field_info::{ExcelTitle, FieldInfo};
+use super::cell::{CellData, CellType};
 use super::excel_rows::{ExcelRow, ExcelRows};
 use super::json_rows::{JsonRow, JsonRows};
+use super::title::{ExcelTitle, FieldInfo};
 
 const START_ROW: usize = 3_usize; // the 3th row
 
@@ -134,8 +134,8 @@ fn fill_json_row(title: &ExcelTitle, _row: u32, cells: &ExcelRow, json_row: &mut
         if let Some(field_info) = field_info_opt {
             // fill json value
             let name = field_info.name.clone();
-            let json_value = cell.to_json_value();
-            json_row.value_table.insert(name, json_value);
+            let json = cell.to_json();
+            json_row.value_table.insert(name, json);
         }
     }
 }
@@ -237,75 +237,6 @@ fn read_excel_title(key_name: &str, range: &Range<DataType>) -> Option<ExcelTitl
     Some(title)
 }
 
-fn update_cell_type(title: &mut ExcelTitle, data: &CellData) {
-    let col = data.col;
-    let field_info_opt = title.get_field_info_mut(col);
-    if let Some(field_info) = field_info_opt {
-        if field_info.cell_type == CellType::Unknown {
-            // update
-            field_info.cell_type = data.cell_type;
-        }
-    }
-}
-
-fn check_cell_type(row: u32, title: &ExcelTitle, data: &CellData) -> bool {
-    let col = data.col;
-    let field_info_opt = title.get_field_info(col);
-    if let Some(field_info) = field_info_opt {
-        match field_info.cell_type {
-            CellType::Unknown => {
-                let err_msg = std::format!(
-                    "\r\n[row={}] check cell({:?}) failed!!! \r\n {:?}!!!",
-                    row,
-                    data,
-                    field_info
-                );
-                log::error!("{}", err_msg);
-                std::panic!("{}", err_msg);
-            }
-            CellType::Null => {
-                let err_msg = std::format!(
-                    "\r\n[row={}] cell({:?}) need to be null!!! \r\n {:?}!!!",
-                    row,
-                    data,
-                    field_info
-                );
-                log::error!("{}", err_msg);
-                std::panic!("{}", err_msg);
-            }
-            CellType::String => {
-                if data.cell_type != field_info.cell_type {
-                    let err_msg = std::format!(
-                        "\r\n[row={}] cell({:?}) type mismatch!!! \r\n {:?}!!!",
-                        row,
-                        data,
-                        field_info
-                    );
-                    log::error!("{}", err_msg);
-                    std::panic!("{}", err_msg);
-                } else {
-                    return true;
-                }
-            }
-            CellType::Integer | CellType::Float => {
-                if data.cell_type != CellType::Integer && data.cell_type != CellType::Float {
-                    let err_msg = std::format!(
-                        "\r\n[row={}] cell({:?}) type mismatch!!! field_info is {:?}!!!",
-                        row,
-                        data,
-                        field_info
-                    );
-                    log::error!("{}", err_msg);
-                    std::panic!("{}", err_msg);
-                } else {
-                    return true;
-                }
-            }
-        }
-    }
-    false
-}
-
 fn read_excel_rows(title: &mut ExcelTitle, range: &Range<DataType>) -> ExcelRows {
     //
     assert!(title.title_row >= 0);
@@ -339,8 +270,9 @@ fn read_excel_rows(title: &mut ExcelTitle, range: &Range<DataType>) -> ExcelRows
                         data.cell_type = CellType::Integer;
                         data.integer_val = *n;
 
-                        update_cell_type(title, &data);
-                        check_cell_type(row, title, &data);
+                        //
+                        title.sync_cell_type(&mut data);
+                        title.check_cell_type(row, &data);
 
                         // collect
                         data_opt = Some(data);
@@ -353,8 +285,9 @@ fn read_excel_rows(title: &mut ExcelTitle, range: &Range<DataType>) -> ExcelRows
                         data.cell_type = CellType::Float;
                         data.float_val = *f;
 
-                        update_cell_type(title, &data);
-                        check_cell_type(row, title, &data);
+                        //
+                        title.sync_cell_type(&mut data);
+                        title.check_cell_type(row, &data);
 
                         // collect
                         data_opt = Some(data);
@@ -367,8 +300,9 @@ fn read_excel_rows(title: &mut ExcelTitle, range: &Range<DataType>) -> ExcelRows
                         data.cell_type = CellType::String;
                         data.string_val = s.to_owned();
 
-                        update_cell_type(title, &data);
-                        check_cell_type(row, title, &data);
+                        //
+                        title.sync_cell_type(&mut data);
+                        title.check_cell_type(row, &data);
 
                         // collect
                         data_opt = Some(data);
@@ -385,8 +319,9 @@ fn read_excel_rows(title: &mut ExcelTitle, range: &Range<DataType>) -> ExcelRows
                             data.integer_val = 0_i64;
                         }
 
-                        update_cell_type(title, &data);
-                        check_cell_type(row, title, &data);
+                        //
+                        title.sync_cell_type(&mut data);
+                        title.check_cell_type(row, &data);
 
                         // collect
                         data_opt = Some(data);
@@ -399,8 +334,9 @@ fn read_excel_rows(title: &mut ExcelTitle, range: &Range<DataType>) -> ExcelRows
                         data.cell_type = CellType::Float;
                         data.float_val = *f;
 
-                        update_cell_type(title, &data);
-                        check_cell_type(row, title, &data);
+                        //
+                        title.sync_cell_type(&mut data);
+                        title.check_cell_type(row, &data);
 
                         // collect
                         data_opt = Some(data);
@@ -413,8 +349,9 @@ fn read_excel_rows(title: &mut ExcelTitle, range: &Range<DataType>) -> ExcelRows
                         data.cell_type = CellType::Float;
                         data.float_val = *f;
 
-                        update_cell_type(title, &data);
-                        check_cell_type(row, title, &data);
+                        //
+                        title.sync_cell_type(&mut data);
+                        title.check_cell_type(row, &data);
 
                         // collect
                         data_opt = Some(data);
@@ -428,8 +365,9 @@ fn read_excel_rows(title: &mut ExcelTitle, range: &Range<DataType>) -> ExcelRows
                         data.cell_type = CellType::String;
                         data.string_val = s.to_owned();
 
-                        update_cell_type(title, &data);
-                        check_cell_type(row, title, &data);
+                        //
+                        title.sync_cell_type(&mut data);
+                        title.check_cell_type(row, &data);
 
                         // collect
                         data_opt = Some(data);
@@ -443,8 +381,9 @@ fn read_excel_rows(title: &mut ExcelTitle, range: &Range<DataType>) -> ExcelRows
                         data.cell_type = CellType::String;
                         data.string_val = s.to_owned();
 
-                        update_cell_type(title, &data);
-                        check_cell_type(row, title, &data);
+                        //
+                        title.sync_cell_type(&mut data);
+                        title.check_cell_type(row, &data);
 
                         // collect
                         data_opt = Some(data);

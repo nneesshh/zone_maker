@@ -4,8 +4,9 @@ use std::{
     str::FromStr,
 };
 
-use crate::template_writer::write_one_zone;
-use crate::{field_aliase::AliaseMapper, toml_helper};
+use crate::template_helper::write_one_zone;
+use crate::utils::toml_util;
+use crate::{field_aliase::AliaseMapper, template_helper::read_template_contents};
 
 ///
 pub struct TomlFormatter {
@@ -25,12 +26,7 @@ impl TomlFormatter {
         ini_buf_reader.read_to_string(&mut ini_contents).unwrap();
 
         // tpl -- read template to contents
-        let tpl_file = std::fs::File::open(&tpl_path).unwrap();
-        let mut template_buf_reader = BufReader::new(tpl_file);
-        let mut template_contents = String::new();
-        template_buf_reader
-            .read_to_string(&mut template_contents)
-            .unwrap();
+        let template_contents = read_template_contents(&tpl_path);
 
         //
         let field_table = toml::Table::from_str(ini_contents.as_str()).unwrap();
@@ -49,7 +45,7 @@ impl TomlFormatter {
         let mut data = serde_json::Map::new();
         for (key, val) in &self.field_table {
             //
-            data.insert(key.clone(), toml_helper::to_json(val));
+            data.insert(key.clone(), toml_util::to_json(val));
         }
 
         // update aliase

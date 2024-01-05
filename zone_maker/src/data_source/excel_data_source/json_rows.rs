@@ -1,5 +1,3 @@
-
-
 use serde_json::Value as Json;
 
 use crate::utils::json_util;
@@ -11,6 +9,12 @@ pub struct JsonRows {
 }
 
 impl JsonRows {
+    ///
+    #[allow(dead_code)]
+    pub fn len(&self) -> usize {
+        self.key_2_row_table.len()
+    }
+
     ///
     #[allow(dead_code)]
     pub fn get_row(&self, row: u32) -> Option<&JsonRow> {
@@ -46,7 +50,7 @@ impl JsonRow {
     #[allow(dead_code)]
     pub fn get_value_as_string(&self, key: &str) -> Option<String> {
         if let Some(val) = self.value_table.get(key) {
-            let s = to_string(val);
+            let s = json_util::to_string(val);
             Some(s)
         } else {
             //
@@ -58,7 +62,7 @@ impl JsonRow {
     #[allow(dead_code)]
     pub fn get_value_as_int64(&self, key: &str) -> Option<i64> {
         if let Some(val) = self.value_table.get(key) {
-            let n = to_int64(val);
+            let n = json_util::to_int64(val);
             Some(n)
         } else {
             //
@@ -70,7 +74,7 @@ impl JsonRow {
     #[allow(dead_code)]
     pub fn get_value_as_double(&self, key: &str) -> Option<f64> {
         if let Some(val) = self.value_table.get(key) {
-            let f = to_double(val);
+            let f = json_util::to_double(val);
             Some(f)
         } else {
             //

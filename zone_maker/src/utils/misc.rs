@@ -1,70 +1,11 @@
-///
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum CellType {
-    Unknown,
-    Null,
-    String,
-    Integer,
-    Float,
-}
-
-///
-#[derive(Debug)]
-pub struct CellData {
-    pub row: u32, // row
-    pub col: u32, // column
-    pub cell_type: CellType,
-
-    pub string_val: String,
-    pub integer_val: i64,
-    pub float_val: f64,
-
-    //
-    pub is_key_column: bool,
-}
-
-impl CellData {
-    ///
-    pub fn new() -> Self {
-        Self {
-            row: 0,
-            col: 0,
-            cell_type: CellType::Null,
-
-            string_val: "".to_owned(),
-            integer_val: 0_i64,
-            float_val: 0_f64,
-
-            is_key_column: false,
-        }
-    }
-
-    ///
-    pub fn to_json_value(&self) -> serde_json::Value {
-        match self.cell_type {
-            CellType::String => {
-                //
-                serde_json::Value::from(self.string_val.as_str())
-            }
-            CellType::Integer => {
-                //
-                serde_json::Value::from(self.integer_val)
-            }
-            CellType::Float => {
-                //
-                let n_floor = self.float_val.floor();
-                if n_floor == self.float_val {
-                    // to i64
-                    serde_json::Value::from(n_floor as i64)
-                } else {
-                    serde_json::Value::from(self.float_val)
-                }
-            }
-            _ => {
-                // null
-                serde_json::Value::Null
-            }
-        }
+/// Erase .0
+pub fn float_to_string(f: f64) -> String {
+    let n_floor = f.floor();
+    if n_floor == f {
+        // to i64
+        (n_floor as i64).to_string()
+    } else {
+        f.to_string()
     }
 }
 

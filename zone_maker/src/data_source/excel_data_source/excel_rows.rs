@@ -1,4 +1,4 @@
-use super::excel_cell_data::CellData;
+use super::cell::CellData;
 
 ///
 pub struct ExcelRows {
