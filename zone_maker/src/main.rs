@@ -134,7 +134,7 @@ fn main() {
 
             // ini
             let ini_file_path = PathBuf::from(toml.ini_path);
-            let formatter = formatter::toml_formatter::TomlFormatter::new(
+            let formatter = formatter::ini_formatter::IniFormatter::new(
                 key_name,
                 ini_file_path,
                 template_file_path,
@@ -151,6 +151,8 @@ fn main() {
 
             // db
             let formatter = formatter::mysql_formatter::MySqlFormatter::new(
+                key_name,
+                zone_id,
                 *mysql_addr,
                 template_file_path,
                 output_file_path,

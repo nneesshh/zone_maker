@@ -145,7 +145,10 @@ pub fn float_to_json(f: f64) -> Json {
 
 ///
 pub fn eval_add(x: &Json, y: &Json) -> String {
-    if x.is_i64() || x.is_u64() {
+    if x.is_null() {
+        to_string(y)
+    }
+    else if x.is_i64() || x.is_u64() {
         let a = to_int64(x);
         let b = to_int64(y);
         std::format!("{}", a + b)

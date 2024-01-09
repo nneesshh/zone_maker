@@ -26,3 +26,6 @@ pub const SQL_INSERT_ZONE: &str = r#"
 
 #[allow(dead_code)]
 pub const SQL_QUERY_ZONE: &str = r#"SELECT * FROM `zone_config` WHERE zone_id=?"#;
+
+#[allow(dead_code)]
+pub const SQL_QUERY_ZONE_ALL: &str = r#"SELECT * FROM `zone_config`"#;

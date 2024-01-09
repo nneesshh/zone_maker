@@ -1,141 +1,99 @@
 use std::path::PathBuf;
 
-use handlebars::handlebars_helper;
-
-use crate::db_access::{MySqlAccess, MySqlAddr, SqlPreparedParams};
-use crate::sqls;
+use crate::data_source::mysql_data_source::MySqlDataSource;
+use crate::data_source::DataSource;
+use crate::db_access::MySqlAddr;
 use crate::template_helper::{read_template_contents, write_one_zone};
-
-///
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct Config {
-    zone_id: i32,
-    group_id: u32,
-    gw_port: u16,
-    http_port: u16,
-    db_url: String,
-    redis_ip: String,
-    redis_port: u16,
-    web_url: String,
-}
+use crate::utils::json_util;
 
 ///
 pub struct MySqlFormatter {
-    db_addr: MySqlAddr,
+    key_name: String,
+    zone_id: i32,
+
+    data_source: MySqlDataSource,
+
     template_contents: String,
     output_path: PathBuf,
+
+    strict_mode: bool,
 }
 
 impl MySqlFormatter {
     ///
-    pub fn new(db_addr: MySqlAddr, tpl_path: PathBuf, output_path: PathBuf) -> Self {
+    pub fn new(
+        key_name: &str,
+        zone_id: i32,
+        db_addr: MySqlAddr,
+        tpl_path: PathBuf,
+        output_path: PathBuf,
+    ) -> Self {
+        // ds -- excel, read mysql data to json rows
+        let data_source = MySqlDataSource::new(key_name, db_addr);
+
         // tpl -- read template to contents
         let template_contents = read_template_contents(&tpl_path);
 
         Self {
-            db_addr,
+            key_name: key_name.to_owned(),
+            zone_id,
+
+            data_source,
+
             template_contents,
             output_path,
+
+            strict_mode: false
         }
     }
 
     ///
     pub fn format(&self) {
         //
-        let mut reg = handlebars::Handlebars::new();
-        reg.set_strict_mode(true);
-        handlebars_helper!(concat: |x: u64, y: u64| {
-            //
-            std::format!("{}{}", x, y)
-        });
+        if self.zone_id > 0 {
+            // output one zone
+            let zone = self.zone_id.to_string();
+            let data_opt = self.data_source.get_row(&zone);
+            if let Some(data) = data_opt {
+                //
+                let _ = write_one_zone(
+                    zone.as_str(),
+                    &self.output_path,
+                    self.template_contents.as_str(),
+                    data,
+                    self.strict_mode,
+                );
+            } else {
+                let err_msg = std::format!("Zone {} not found", zone);
+                log::error!("{}", err_msg);
+                std::panic!("{}", err_msg);
+            }
+        } else {
+            // output all zones
+            let key = self.key_name.as_str();
+            let data_vec = self.data_source.get_all_rows();
 
-        //
-        reg.register_helper("concat", Box::new(concat));
+            for data in data_vec {
+                //
+                let zone_opt = data.get(key);
+                if let Some(zone) = zone_opt {
+                    //
+                    let zone = json_util::to_string(zone);
 
-        reg.register_template_string("zone_xml", self.template_contents.as_str())
-            .unwrap();
-
-        // read config from db
-        let config: Config = read_config_from_db(&self.db_addr).unwrap();
-
-        //
-        let mut data = serde_json::Map::new();
-        data.insert("config".to_owned(), handlebars::to_json(&config));
-
-        let zone = config.zone_id.to_string();
-
-        //
-        let _ = write_one_zone(
-            zone.as_str(),
-            &self.output_path,
-            self.template_contents.as_str(),
-            &data,
-            false,
-        );
-    }
-}
-
-fn read_config_from_db(db_addr: &MySqlAddr) -> Option<Config> {
-    let url = std::format!(
-        "mysql://{}:{}@{}:{}/{}",
-        db_addr.user,
-        db_addr.password,
-        db_addr.host,
-        db_addr.port,
-        db_addr.dbname,
-    );
-    let mut db = MySqlAccess::new(url.as_str());
-    match db.open() {
-        Ok(_) => {
-            //
+                    //
+                    let _ = write_one_zone(
+                        zone.as_str(),
+                        &self.output_path,
+                        self.template_contents.as_str(),
+                        data,
+                        self.strict_mode,
+                    );
+                } else {
+                    let err_msg = std::format!("Key {} field is not found among row!!!", key);
+                    log::error!("{}", err_msg);
+                    std::panic!("{}", err_msg);
+                }
+            }
         }
-        Err(err) => {
-            //
-            std::panic!("{}", err);
-        }
-    };
-
-    let ret = db.exec_prepared_query(sqls::SQL_QUERY_ZONE, || {
-        //
-        let mut params = SqlPreparedParams::new();
-        params.add_string("5001");
-
-        params
-    });
-    assert!(ret.is_ok());
-
-    let rows = ret.unwrap();
-    if rows.len() > 0 {
-        let row = &rows[0];
-        let mut idx: usize = 0;
-        let zone_id = row.get_uint64(&mut idx).unwrap() as i32;
-        let group_id = row.get_uint64(&mut idx).unwrap_or(0);
-        let gw_port = row.get_uint64(&mut idx).unwrap();
-        let http_port = row.get_uint64(&mut idx).unwrap();
-
-        let db_url = row.get_string(&mut idx).unwrap();
-
-        let redis_ip = row.get_string(&mut idx).unwrap();
-        let redis_port = row.get_uint64(&mut idx).unwrap();
-
-        let web_url = row.get_string(&mut idx).unwrap();
-
-        let _test_blob = row.get_blob_by_name("test_blob");
-        let _test_timestamp = row.get_timestamp_by_name("test_timestamp");
-
-        let config = Config {
-            zone_id,
-            group_id: group_id as u32,
-            gw_port: gw_port as u16,
-            http_port: http_port as u16,
-            db_url: db_url.to_owned(),
-            redis_ip: redis_ip.to_owned(),
-            redis_port: redis_port as u16,
-            web_url: web_url.to_owned(),
-        };
-
-        Some(config)
-    } else {
-        None
     }
 }

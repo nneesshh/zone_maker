@@ -6,15 +6,18 @@ use std::cell::UnsafeCell;
 use std::ops::Index;
 use std::rc::Rc;
 
-use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
-use mysql::{
-    from_row, prelude::Queryable, Params, Pool, PooledConn, Result, Row, Statement, Value,
-};
+use chrono::{DateTime, Datelike, Timelike, Utc};
+use mysql::{from_row, prelude::Queryable, Pool, PooledConn, Result, Row, Statement, Value};
+
+use crate::utils::mysql_util;
+
+///
+pub const DEFAULT_PARAMS_CAPACITY: usize = 256;
 
 const EXEC_RETRY_MAX: i32 = 2;
 const RETRY_DELAY: std::time::Duration = std::time::Duration::from_millis(3000);
-
-static EMPTY_VEC_U8: Vec<u8> = Vec::new();
+const DEFAULT_ROWS_CAPACITY: usize = 256;
+const DEFAULT_COLUMNS_CAPACITY: usize = 64;
 
 ///
 #[derive(clap::Args, Debug)]
@@ -42,15 +45,27 @@ pub struct MySqlAddr {
 }
 
 ///
-pub struct SqlRow {
-    pub inner: Row,
+pub struct SqlRows {
+    pub rows: Vec<SqlRow>,
+    pub columns: Vec<String>,
 }
+
+impl SqlRows {
+    ///
+    #[allow(dead_code)]
+    pub fn len(&self) -> usize {
+        self.rows.len()
+    }
+}
+
+///
+pub struct SqlRow(Row);
 
 impl SqlRow {
     /// idx auto increase 1
     #[inline(always)]
     pub fn get(&self, idx: &mut usize) -> &Value {
-        let val = self.inner.index(*idx);
+        let val = self.0.index(*idx);
         (*idx) += 1;
         val
     }
@@ -59,23 +74,23 @@ impl SqlRow {
     #[allow(dead_code)]
     #[inline(always)]
     pub fn get_by_name(&self, name: &str) -> &Value {
-        self.inner.index(name)
+        self.0.index(name)
     }
 
-    /// string
+    /// str
     #[allow(dead_code)]
     #[inline(always)]
-    pub fn get_string(&self, idx: &mut usize) -> Option<&str> {
+    pub fn get_str(&self, idx: &mut usize) -> Option<&str> {
         let val = self.get(idx);
-        value_to_string(val)
+        mysql_util::value_to_str(val)
     }
 
-    /// string by name
+    /// str by name
     #[allow(dead_code)]
     #[inline(always)]
-    pub fn get_string_by_name(&self, name: &str) -> Option<&str> {
+    pub fn get_str_by_name(&self, name: &str) -> Option<&str> {
         let val = self.get_by_name(name);
-        value_to_string(val)
+        mysql_util::value_to_str(val)
     }
 
     /// blob
@@ -83,7 +98,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_blob(&self, idx: &mut usize) -> Option<&Vec<u8>> {
         let val = self.get(idx);
-        value_to_blob(val)
+        mysql_util::value_to_blob(val)
     }
 
     /// blob by name
@@ -91,7 +106,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_blob_by_name(&self, name: &str) -> Option<&Vec<u8>> {
         let val = self.get_by_name(name);
-        value_to_blob(val)
+        mysql_util::value_to_blob(val)
     }
 
     /// int64
@@ -99,7 +114,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_int64(&self, idx: &mut usize) -> Option<i64> {
         let val = self.get(idx);
-        value_to_int64(val)
+        mysql_util::value_to_int64(val)
     }
 
     /// int64 by name
@@ -107,7 +122,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_int64_by_name(&self, name: &str) -> Option<i64> {
         let val = self.get_by_name(name);
-        value_to_int64(val)
+        mysql_util::value_to_int64(val)
     }
 
     /// uint64
@@ -115,7 +130,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_uint64(&self, idx: &mut usize) -> Option<u64> {
         let val = self.get(idx);
-        value_to_uint64(val)
+        mysql_util::value_to_uint64(val)
     }
 
     /// uint64 by name
@@ -123,7 +138,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_uint64_by_name(&self, name: &str) -> Option<u64> {
         let val = self.get_by_name(name);
-        value_to_uint64(val)
+        mysql_util::value_to_uint64(val)
     }
 
     /// float
@@ -131,7 +146,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_float(&self, idx: &mut usize) -> Option<f32> {
         let val = self.get(idx);
-        value_to_float(val)
+        mysql_util::value_to_float(val)
     }
 
     /// float by name
@@ -139,7 +154,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_float_by_name(&self, name: &str) -> Option<f32> {
         let val = self.get_by_name(name);
-        value_to_float(val)
+        mysql_util::value_to_float(val)
     }
 
     /// double
@@ -147,7 +162,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_double(&self, idx: &mut usize) -> Option<f64> {
         let val = self.get(idx);
-        value_to_double(val)
+        mysql_util::value_to_double(val)
     }
 
     /// double by name
@@ -155,7 +170,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_double_by_name(&self, name: &str) -> Option<f64> {
         let val = self.get_by_name(name);
-        value_to_double(val)
+        mysql_util::value_to_double(val)
     }
 
     /// timestamp -- Return (secs, micro_seconds)
@@ -163,7 +178,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_timestamp(&self, idx: &mut usize) -> Option<(i64, u32)> {
         let val = self.get(idx);
-        value_to_timestamp(val)
+        mysql_util::value_to_timestamp(val)
     }
 
     /// timestamp by name -- Return (secs, micro_seconds)
@@ -171,7 +186,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_timestamp_by_name(&self, name: &str) -> Option<(i64, u32)> {
         let val = self.get_by_name(name);
-        value_to_timestamp(val)
+        mysql_util::value_to_timestamp(val)
     }
 
     /// date
@@ -179,7 +194,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_date(&self, idx: &mut usize) -> Option<(u16, u8, u8, u8, u8, u8, u32)> {
         let val = self.get(idx);
-        value_to_date(val)
+        mysql_util::value_to_date(val)
     }
 
     /// date by name
@@ -187,7 +202,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_date_by_name(&self, name: &str) -> Option<(u16, u8, u8, u8, u8, u8, u32)> {
         let val = self.get_by_name(name);
-        value_to_date(val)
+        mysql_util::value_to_date(val)
     }
 
     /// time
@@ -195,7 +210,7 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_time(&self, idx: &mut usize) -> Option<(bool, u32, u8, u8, u8, u32)> {
         let val = self.get(idx);
-        value_to_time(val)
+        mysql_util::value_to_time(val)
     }
 
     /// time by name
@@ -203,161 +218,36 @@ impl SqlRow {
     #[inline(always)]
     pub fn get_time_by_name(&self, name: &str) -> Option<(bool, u32, u8, u8, u8, u32)> {
         let val = self.get_by_name(name);
-        value_to_time(val)
-    }
-}
-
-#[inline(always)]
-fn value_to_string(val: &Value) -> Option<&str> {
-    match val {
-        Value::NULL => None,
-        Value::Bytes(v) => {
-            //
-            Some(unsafe { std::str::from_utf8_unchecked(v.as_slice()) })
-        }
-        _ => Some(""),
-    }
-}
-
-#[inline(always)]
-fn value_to_blob(val: &Value) -> Option<&Vec<u8>> {
-    match val {
-        Value::NULL => None,
-        Value::Bytes(v) => {
-            //
-            Some(&v)
-        }
-        _ => Some(&EMPTY_VEC_U8),
-    }
-}
-
-#[inline(always)]
-fn value_to_int64(val: &Value) -> Option<i64> {
-    match val {
-        Value::NULL => None,
-        Value::Int(n) => Some(*n),
-        _ => Some(0),
-    }
-}
-
-#[inline(always)]
-fn value_to_uint64(val: &Value) -> Option<u64> {
-    match val {
-        Value::NULL => None,
-        Value::Int(n) => Some(*n as u64),
-        _ => Some(0),
-    }
-}
-
-#[inline(always)]
-fn value_to_float(val: &Value) -> Option<f32> {
-    match val {
-        Value::NULL => None,
-        Value::Float(f) => Some(*f),
-        _ => Some(0_f32),
-    }
-}
-
-#[inline(always)]
-fn value_to_double(val: &Value) -> Option<f64> {
-    match val {
-        Value::NULL => None,
-        Value::Double(f) => Some(*f),
-        _ => Some(0_f64),
-    }
-}
-
-#[inline(always)]
-fn value_to_timestamp(val: &Value) -> Option<(i64, u32)> {
-    let ret = value_to_date(val);
-    match ret {
-        Some((0, 0, 0, 0, 0, 0, 0)) => {
-            //
-            Some((0, 0))
-        }
-        Some((year, month, day, hour, minutes, seconds, micro_seconds)) => {
-            //
-            let dt: DateTime<Utc> = Utc
-                .with_ymd_and_hms(
-                    year as i32,
-                    month as u32,
-                    day as u32,
-                    hour as u32,
-                    minutes as u32,
-                    seconds as u32,
-                )
-                .unwrap();
-            Some((dt.timestamp(), micro_seconds))
-        }
-        None => None,
-    }
-}
-
-#[inline(always)]
-fn value_to_date(val: &Value) -> Option<(u16, u8, u8, u8, u8, u8, u32)> {
-    match val {
-        Value::NULL => None,
-        Value::Date(year, month, day, hour, minutes, seconds, micro_seconds) => {
-            //
-            Some((
-                *year,
-                *month,
-                *day,
-                *hour,
-                *minutes,
-                *seconds,
-                *micro_seconds,
-            ))
-        }
-        _ => Some((0, 0, 0, 0, 0, 0, 0)),
-    }
-}
-
-#[inline(always)]
-fn value_to_time(val: &Value) -> Option<(bool, u32, u8, u8, u8, u32)> {
-    match val {
-        Value::NULL => None,
-        Value::Time(is_negative, days, hours, minutes, seconds, micro_seconds) => {
-            //
-            Some((
-                *is_negative,
-                *days,
-                *hours,
-                *minutes,
-                *seconds,
-                *micro_seconds,
-            ))
-        }
-        _ => Some((false, 0, 0, 0, 0, 0)),
+        mysql_util::value_to_time(val)
     }
 }
 
 ///
 pub struct SqlPreparedParams {
-    inner: Vec<Value>,
+    params: Vec<Value>,
 }
 
 impl SqlPreparedParams {
     ///
+    #[allow(dead_code)]
     #[inline(always)]
     pub fn new() -> Self {
         Self {
-            inner: Vec::with_capacity(256),
+            params: Vec::with_capacity(DEFAULT_PARAMS_CAPACITY),
         }
     }
 
     ///
     #[inline(always)]
     pub fn to_inner(self) -> Vec<Value> {
-        self.inner
+        self.params
     }
 
     ///
     #[allow(dead_code)]
     #[inline(always)]
-    #[allow(dead_code)]
     pub fn add_null(&mut self) {
-        self.inner.push(Value::NULL);
+        self.params.push(Value::NULL);
     }
 
     ///
@@ -368,42 +258,42 @@ impl SqlPreparedParams {
         S: AsRef<str>,
     {
         let v = s.as_ref().as_bytes().to_vec();
-        self.inner.push(Value::Bytes(v));
+        self.params.push(Value::Bytes(v));
     }
 
     ///
     #[allow(dead_code)]
     #[inline(always)]
     pub fn add_blob(&mut self, blob: Vec<u8>) {
-        self.inner.push(Value::Bytes(blob));
+        self.params.push(Value::Bytes(blob));
     }
 
     ///
     #[allow(dead_code)]
     #[inline(always)]
     pub fn add_int64(&mut self, n: i64) {
-        self.inner.push(Value::Int(n));
+        self.params.push(Value::Int(n));
     }
 
     ///
     #[allow(dead_code)]
     #[inline(always)]
     pub fn add_uint64(&mut self, n: u64) {
-        self.inner.push(Value::UInt(n));
+        self.params.push(Value::UInt(n));
     }
 
     ///
     #[allow(dead_code)]
     #[inline(always)]
     pub fn add_float(&mut self, f: f32) {
-        self.inner.push(Value::Float(f));
+        self.params.push(Value::Float(f));
     }
 
     ///
     #[allow(dead_code)]
     #[inline(always)]
     pub fn add_double(&mut self, f: f64) {
-        self.inner.push(Value::Double(f));
+        self.params.push(Value::Double(f));
     }
 
     ///
@@ -441,7 +331,7 @@ impl SqlPreparedParams {
         seconds: u8,
         micro_seconds: u32,
     ) {
-        self.inner.push(Value::Date(
+        self.params.push(Value::Date(
             year,
             month,
             day,
@@ -464,7 +354,7 @@ impl SqlPreparedParams {
         seconds: u8,
         micro_seconds: u32,
     ) {
-        self.inner.push(Value::Time(
+        self.params.push(Value::Time(
             is_negative,
             days,
             hours,
@@ -669,7 +559,6 @@ impl MySqlAccess {
             Err(err) => {
                 //
                 log::error!("open mysql({}) failed!!! err: {}!!!", self.url, err);
-                println!("open mysql({}) failed!!! err: {}!!!", self.url, err);
                 Err(err)
             }
         }
@@ -704,7 +593,7 @@ impl MySqlAccess {
 
     ///
     #[allow(dead_code)]
-    pub fn exec_query<S>(&mut self, sql: S) -> Result<Vec<SqlRow>>
+    pub fn exec_query<S>(&mut self, sql: S) -> Result<SqlRows>
     where
         S: AsRef<str>,
     {
@@ -731,7 +620,6 @@ impl MySqlAccess {
         // error
         let err = err_opt.unwrap();
         log::error!("[exec_query] failed!!! error: {}", err);
-        println!("[exec_query] failed!!! error: {}", err);
         Err(err)
     }
 
@@ -764,16 +652,15 @@ impl MySqlAccess {
         // error
         let err = err_opt.unwrap();
         log::error!("[exec_update] failed!!! error: {}", err);
-        println!("[exec_update] failed!!! error: {}", err);
         Err(err)
     }
 
     //
     #[allow(dead_code)]
-    pub fn exec_prepared_query<F, S>(&mut self, sql: S, params_fn: F) -> Result<Vec<SqlRow>>
+    pub fn exec_prepared_query<F, S>(&mut self, sql: S, params_fn: F) -> Result<SqlRows>
     where
         S: AsRef<str>,
-        F: Fn() -> SqlPreparedParams,
+        F: Fn() -> Option<SqlPreparedParams>,
     {
         log::debug!("[exec_prepared_query] sql={}", sql.as_ref());
 
@@ -782,8 +669,13 @@ impl MySqlAccess {
         while cnt < EXEC_RETRY_MAX {
             cnt = cnt + 1;
 
-            let params = params_fn();
-            let rs = self.do_exec_prepared_query(&sql, params.to_inner());
+            let params_opt = params_fn();
+            let param_vec = if let Some(params) = params_opt {
+                params.to_inner()
+            } else {
+                Vec::with_capacity(0)
+            };
+            let rs = self.do_exec_prepared_query(&sql, param_vec);
             if rs.is_ok() {
                 return rs;
             } else {
@@ -803,7 +695,6 @@ impl MySqlAccess {
         // error
         let err = err_opt.unwrap();
         log::error!("[exec_prepared_query] failed!!! error: {}", err);
-        println!("[exec_prepared_query] failed!!! error: {}", err);
         Err(err)
     }
 
@@ -812,7 +703,7 @@ impl MySqlAccess {
     pub fn exec_prepared_update<F, S>(&mut self, sql: S, params_fn: F) -> Result<()>
     where
         S: AsRef<str>,
-        F: Fn() -> SqlPreparedParams,
+        F: Fn() -> Option<SqlPreparedParams>,
     {
         log::debug!("[exec_prepared_update] sql={}", sql.as_ref());
 
@@ -821,8 +712,13 @@ impl MySqlAccess {
         while cnt < EXEC_RETRY_MAX {
             cnt = cnt + 1;
 
-            let params = params_fn();
-            let rs = self.do_exec_prepared_update(&sql, params.to_inner());
+            let params_opt = params_fn();
+            let param_vec = if let Some(params) = params_opt {
+                params.to_inner()
+            } else {
+                Vec::with_capacity(0)
+            };
+            let rs = self.do_exec_prepared_update(&sql, param_vec);
             if rs.is_ok() {
                 return rs;
             } else {
@@ -842,12 +738,11 @@ impl MySqlAccess {
         // error
         let err = err_opt.unwrap();
         log::error!("[exec_prepared_update] failed!!! error: {}", err);
-        println!("[exec_prepared_update] failed!!! error: {}", err);
         Err(err)
     }
 
     #[inline(always)]
-    fn do_exec_query<S>(&mut self, sql: &S) -> Result<Vec<SqlRow>>
+    fn do_exec_query<S>(&mut self, sql: &S) -> Result<SqlRows>
     where
         S: AsRef<str>,
     {
@@ -860,35 +755,40 @@ impl MySqlAccess {
         let mut conn = pool.get_conn()?;
 
         //
-        let mut v = Vec::with_capacity(256);
+        let mut rows = Vec::with_capacity(DEFAULT_ROWS_CAPACITY);
+        let mut columns = Vec::with_capacity(DEFAULT_COLUMNS_CAPACITY);
 
         //
         let mut result = conn.query_iter(sql)?;
         let mut sets = 0;
-        while let Some(result_set) = result.iter() {
+        while let Some(rs) = result.iter() {
             sets += 1;
+
+            // collect columns
+            for column in rs.columns().as_ref() {
+                let column_name = column.org_name_str();
+                columns.push(column_name.into_owned());
+            }
 
             log::info!(
                 "[do_exec_query] Result set columns: {}/{:?}",
                 sets,
-                result_set.columns()
+                rs.columns()
             );
             log::info!(
                 "[do_exec_query] Result set meta: {}, {:?}, {} {}",
-                result_set.affected_rows(),
-                result_set.last_insert_id(),
-                result_set.warnings(),
-                result_set.info_str(),
+                rs.affected_rows(),
+                rs.last_insert_id(),
+                rs.warnings(),
+                rs.info_str(),
             );
 
-            for row in result_set {
-                v.push(SqlRow {
-                    inner: from_row(row?),
-                });
+            for row in rs {
+                rows.push(SqlRow(from_row(row?)));
             }
         }
 
-        Ok(v)
+        Ok(SqlRows { rows, columns })
     }
 
     #[inline(always)]
@@ -907,10 +807,9 @@ impl MySqlAccess {
     }
 
     #[inline(always)]
-    fn do_exec_prepared_query<P, S>(&mut self, sql: &S, params: P) -> Result<Vec<SqlRow>>
+    fn do_exec_prepared_query<S>(&mut self, sql: &S, param_vec: Vec<Value>) -> Result<SqlRows>
     where
         S: AsRef<str>,
-        P: Into<Params>,
     {
         log::info!(
             "\r\n================================\r\n[do_exec_prepared_query] sql={}",
@@ -922,44 +821,49 @@ impl MySqlAccess {
         let stmt = unsafe { &*prepared.pstmt_opt.as_mut().unwrap().get() };
 
         //
-        let mut v = Vec::with_capacity(256);
+        let mut rows = Vec::with_capacity(DEFAULT_ROWS_CAPACITY);
+        let mut columns = Vec::with_capacity(DEFAULT_COLUMNS_CAPACITY);
 
         //
-        let conn = sql_stmt.conn_opt.as_mut().unwrap();
-        let mut result = conn.exec_iter(stmt.clone(), params)?;
         let mut sets = 0;
 
-        while let Some(result_set) = result.iter() {
+        let conn = sql_stmt.conn_opt.as_mut().unwrap();
+        let mut result = conn.exec_iter(stmt.clone(), param_vec)?;
+
+        while let Some(rs) = result.iter() {
             sets += 1;
+
+            // collect columns
+            for column in rs.columns().as_ref() {
+                let column_name = column.org_name_str();
+                columns.push(column_name.into_owned());
+            }
 
             // log::info!(
             //     "\r\n================================\r\n[do_exec_prepared_query] Result set columns: {:?}",
-            //     result_set.columns()
+            //     rs.columns()
             // );
             log::info!(
                 "\r\n================================\r\n[do_exec_prepared_query]({}) Result set meta: {}, {:?}, {} {}",
                 sets,
-                result_set.affected_rows(),
-                result_set.last_insert_id(),
-                result_set.warnings(),
-                result_set.info_str(),
+                rs.affected_rows(),
+                rs.last_insert_id(),
+                rs.warnings(),
+                rs.info_str(),
             );
 
-            for row in result_set {
-                v.push(SqlRow {
-                    inner: from_row(row?),
-                });
+            for row in rs {
+                rows.push(SqlRow(from_row(row?)));
             }
         }
 
-        Ok(v)
+        Ok(SqlRows { rows, columns })
     }
 
     #[inline(always)]
-    fn do_exec_prepared_update<P, S>(&mut self, sql: &S, params: P) -> Result<()>
+    fn do_exec_prepared_update<S>(&mut self, sql: &S, param_vec: Vec<Value>) -> Result<()>
     where
         S: AsRef<str>,
-        P: Into<Params>,
     {
         log::info!(
             "\r\n================================\r\n[do_exec_prepared_update] sql={}",
@@ -972,7 +876,7 @@ impl MySqlAccess {
 
         //
         let conn = sql_stmt.conn_opt.as_mut().unwrap();
-        conn.exec_drop(stmt.clone(), params)
+        conn.exec_drop(stmt.clone(), param_vec)
     }
 }
 

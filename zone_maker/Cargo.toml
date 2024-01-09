@@ -15,6 +15,7 @@ serde_json = "1.0.39"
 
 calamine = { path = "../calamine" }
 handlebars = { path = "../handlebars-rust" }
+hex = { path = "../rust-hex" }
 iso8601-duration = { path = "../iso8601-duration" }
 log4rs = { path = "../log4rs" }
 mysql = { path = "../rust-mysql-simple", default-features = false, features = ["minimal", "rustls-tls"] }

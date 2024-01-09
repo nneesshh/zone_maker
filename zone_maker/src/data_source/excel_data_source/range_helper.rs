@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use calamine::{open_workbook, DataType, Range, Reader, Xlsx};
 
+use crate::field_aliase::AliaseMapper;
+
 use super::cell::{CellData, CellType};
 use super::excel_rows::{ExcelRow, ExcelRows};
 use super::json_rows::{JsonRow, JsonRows};
@@ -67,7 +69,9 @@ pub fn read_json_rows_from_xlsx(key_name: &str, path: &PathBuf) -> JsonRows {
             }
         }
     } else {
-        log::error!("Cannot find sheet: {}/{}!!!", sheet_name, sheet_idx);
+        let err_msg = std::format!("Cannot find sheet: {}/{}!!!", sheet_name, sheet_idx);
+        log::error!("{}", err_msg);
+        std::panic!("{}", err_msg);
     };
 
     //
@@ -75,6 +79,9 @@ pub fn read_json_rows_from_xlsx(key_name: &str, path: &PathBuf) -> JsonRows {
 }
 
 fn fill_json_rows(key_name: &str, range: &Range<DataType>, json_rows: &mut JsonRows) {
+    // aliase
+    let aliase_mapper = AliaseMapper::new();
+    
     // title
     let mut title: ExcelTitle = read_excel_title(key_name, range).unwrap();
 
@@ -89,41 +96,49 @@ fn fill_json_rows(key_name: &str, range: &Range<DataType>, json_rows: &mut JsonR
         assert_ne!(key_field_info.cell_type, CellType::Unknown);
 
         // walk excel row cells
-        for (row, cells) in &excel_rows.row_table {
+        for (row_idx, cells) in &excel_rows.row_table {
             //
             let mut json_row = JsonRow::new();
-            fill_json_row(&title, *row, cells, &mut json_row);
+            fill_json_row(&title, *row_idx, cells, &mut json_row);
 
             let cell_num = json_row.value_table.len();
             if cell_num > 0 {
                 // row is not empty
-                let zone_opt = json_row.get_value_as_string(&key);
-                if let Some(zone) = zone_opt {
-                    json_rows.row_table.insert(*row, json_row);
+                let val_of_key_opt = json_row.get_value_as_string(&key);
+                if let Some(val_of_key) = val_of_key_opt {
+                    // update aliase
+                    aliase_mapper.update(&mut json_row.value_table);
 
-                    //
-                    json_rows.key_2_row_table.insert(zone.clone(), *row);
+                    // collect row
+                    json_rows.row_table.insert(*row_idx, json_row);
+
+                    // collect val_of_key
+                    json_rows.key_2_row_table.insert(val_of_key, *row_idx);
                 } else {
-                    log::error!(
+                    let err_msg = std::format!(
                         "[row={}] json row get_value() failed!!! key: {} not found!!!",
-                        row,
+                        *row_idx,
                         key
                     );
+                    log::error!("{}", err_msg);
+                    std::panic!("{}", err_msg);
                 }
             } else {
                 // force finish when empty row occurred
                 log::info!(
                     "\r\n>>>> <<<< [row={}] empty row occurred, break. >>>> <<<<",
-                    row
+                    *row_idx
                 );
                 break;
             }
         }
     } else {
-        log::error!(
+        let err_msg = std::format!(
             "get_field_info_by_name() failed!!! key: {} not found!!!",
             key
         );
+        log::error!("{}", err_msg);
+        std::panic!("{}", err_msg);
     }
 }
 

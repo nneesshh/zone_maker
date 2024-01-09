@@ -17,7 +17,7 @@ pub mod json_rows;
 
 ///
 pub struct ExcelDataSource {
-    pub json_rows: JsonRows,
+    json_rows: JsonRows,
 }
 
 impl ExcelDataSource {

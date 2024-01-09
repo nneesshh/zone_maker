@@ -14,6 +14,8 @@ pub struct ExcelFormatter {
 
     template_contents: String,
     output_path: PathBuf,
+
+    strict_mode: bool,
 }
 
 impl ExcelFormatter {
@@ -25,13 +27,12 @@ impl ExcelFormatter {
         tpl_path: PathBuf,
         output_path: PathBuf,
     ) -> Self {
-        // ds -- read excel file to json rows
+        // ds -- excel, read excel file to json rows
         let data_source = ExcelDataSource::new(key_name, &xlsx_path);
 
         // tpl -- read template to contents
         let template_contents = read_template_contents(&tpl_path);
 
-        //
         Self {
             key_name: key_name.to_owned(),
             zone_id,
@@ -40,6 +41,8 @@ impl ExcelFormatter {
 
             template_contents,
             output_path,
+
+            strict_mode: true,
         }
     }
 
@@ -57,10 +60,12 @@ impl ExcelFormatter {
                     &self.output_path,
                     self.template_contents.as_str(),
                     data,
-                    true,
+                    self.strict_mode,
                 );
             } else {
-                log::error!("Zone {} not found", zone);
+                let err_msg = std::format!("Zone {} not found", zone);
+                log::error!("{}", err_msg);
+                std::panic!("{}", err_msg);
             }
         } else {
             // output all zones
@@ -80,10 +85,12 @@ impl ExcelFormatter {
                         &self.output_path,
                         self.template_contents.as_str(),
                         data,
-                        true,
+                        self.strict_mode,
                     );
                 } else {
-                    log::error!("Key {} field is not found among row!!!", key);
+                    let err_msg = std::format!("Key {} field is not found among row!!!", key);
+                    log::error!("{}", err_msg);
+                    std::panic!("{}", err_msg);
                 }
             }
         }
