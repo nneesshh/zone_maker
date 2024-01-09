@@ -81,7 +81,7 @@ pub fn read_json_rows_from_xlsx(key_name: &str, path: &PathBuf) -> JsonRows {
 fn fill_json_rows(key_name: &str, range: &Range<DataType>, json_rows: &mut JsonRows) {
     // aliase
     let aliase_mapper = AliaseMapper::new();
-    
+
     // title
     let mut title: ExcelTitle = read_excel_title(key_name, range).unwrap();
 
@@ -89,8 +89,7 @@ fn fill_json_rows(key_name: &str, range: &Range<DataType>, json_rows: &mut JsonR
     let excel_rows = read_excel_rows(&mut title, range);
 
     // key field info
-    let key = key_name.to_owned();
-    let key_field_info_opt = title.get_field_info_by_name(&key);
+    let key_field_info_opt = title.get_field_info_by_name(key_name);
     if let Some(key_field_info) = key_field_info_opt {
         //
         assert_ne!(key_field_info.cell_type, CellType::Unknown);
@@ -103,12 +102,12 @@ fn fill_json_rows(key_name: &str, range: &Range<DataType>, json_rows: &mut JsonR
 
             let cell_num = json_row.value_table.len();
             if cell_num > 0 {
-                // row is not empty
-                let val_of_key_opt = json_row.get_value_as_string(&key);
-                if let Some(val_of_key) = val_of_key_opt {
-                    // update aliase
-                    aliase_mapper.update(&mut json_row.value_table);
+                // update aliase
+                aliase_mapper.update(&mut json_row.value_table);
 
+                //
+                let val_of_key_opt = json_row.get_value_as_string(key_name);
+                if let Some(val_of_key) = val_of_key_opt {
                     // collect row
                     json_rows.row_table.insert(*row_idx, json_row);
 
@@ -118,7 +117,7 @@ fn fill_json_rows(key_name: &str, range: &Range<DataType>, json_rows: &mut JsonR
                     let err_msg = std::format!(
                         "[row={}] json row get_value() failed!!! key: {} not found!!!",
                         *row_idx,
-                        key
+                        key_name
                     );
                     log::error!("{}", err_msg);
                     std::panic!("{}", err_msg);
@@ -135,7 +134,7 @@ fn fill_json_rows(key_name: &str, range: &Range<DataType>, json_rows: &mut JsonR
     } else {
         let err_msg = std::format!(
             "get_field_info_by_name() failed!!! key: {} not found!!!",
-            key
+            key_name
         );
         log::error!("{}", err_msg);
         std::panic!("{}", err_msg);

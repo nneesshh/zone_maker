@@ -21,7 +21,7 @@ pub fn to_string(val: &MySqlVal) -> String {
 }
 
 ///
-#[allow(dead_code)]
+#[inline(always)]
 pub fn value_to_json(val: &MySqlVal) -> Json {
     match val {
         MySqlVal::NULL => {
@@ -29,8 +29,8 @@ pub fn value_to_json(val: &MySqlVal) -> Json {
             Json::Null
         }
         MySqlVal::Bytes(bytes) => {
-            // hex upper
-            Json::String(hex::encode_upper(bytes))
+            //
+            Json::String(unsafe { std::str::from_utf8_unchecked(bytes.as_slice()).to_owned() })
         }
         MySqlVal::Int(n) => {
             //
@@ -105,10 +105,10 @@ pub fn value_to_string(val: &MySqlVal) -> String {
             //
             "".to_owned()
         }
-        MySqlVal::Bytes(bytes) => {
-            // hex upper
-            hex::encode_upper(bytes)
-        }
+        MySqlVal::Bytes(bytes) => unsafe {
+            //
+            std::str::from_utf8_unchecked(bytes.as_slice()).to_owned()
+        },
         MySqlVal::Int(n) => {
             //
             (*n).to_string()

@@ -43,7 +43,7 @@ impl MySqlFormatter {
             template_contents,
             output_path,
 
-            strict_mode: false
+            strict_mode: false,
         }
     }
 

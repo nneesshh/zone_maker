@@ -88,23 +88,31 @@ fn read_rows_from_db(key_name: &str, db: &mut MySqlAccess) -> JsonRows {
             let key = column.as_str();
             let val = row.get_by_name(key);
 
-            // it is key
-            if key == key_name {
-                // collect val_of_key
-                let val_of_key = mysql_util::to_string(val);
-                json_rows.key_2_row_table.insert(val_of_key, row_idx);
-            }
-
-            // update aliase
-            aliase_mapper.update(&mut json_row.value_table);
-
             json_row
                 .value_table
                 .insert(key.to_owned(), mysql_util::to_json(val));
         }
 
-        // collect row
-        json_rows.row_table.insert(row_idx, json_row);
+        // update aliase
+        aliase_mapper.update(&mut json_row.value_table);
+
+        // row is not empty
+        let val_of_key_opt = json_row.get_value_as_string(key_name);
+        if let Some(val_of_key) = val_of_key_opt {
+            // collect row
+            json_rows.row_table.insert(row_idx, json_row);
+
+            // collect val_of_key
+            json_rows.key_2_row_table.insert(val_of_key, row_idx);
+        } else {
+            let err_msg = std::format!(
+                "[row={}] json row get_value() failed!!! key: {} not found!!!",
+                row_idx,
+                key_name
+            );
+            log::error!("{}", err_msg);
+            std::panic!("{}", err_msg);
+        }
 
         //
         row_idx += 1;
