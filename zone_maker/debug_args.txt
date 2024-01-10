@@ -1,0 +1,3 @@
+            //"args": ["ini", "-i", "res/zone.ini", "-o", "out/a.b.c.xml", "templates/default.tpl"],
+            "args": ["db", "-h", "127.0.0.1", "-u", "root", "-p", "123456", "-D", "test_gpaas", "-j", "{}", "templates/default.tpl"],
+            //"args": ["excel", "-i", "res/文竹海外-配置源.xlsx", "templates/default.tpl"],
