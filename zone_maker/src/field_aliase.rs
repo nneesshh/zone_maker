@@ -43,17 +43,17 @@ impl AliaseMapper {
     ///
     pub fn update(&self, data: &mut serde_json::Map<String, Json>) {
         //
-        for (key, val) in &self.aliase_table {
-            let field_aliase = val.as_str();
-            let source_val_opt = data.get(key.as_str());
+        for (key_name, aliase_name) in &self.aliase_table {
+            //
+            let source_val_opt = data.get(key_name.as_str());
             if let Some(source_val) = source_val_opt {
                 // insert (aliase, value) pair
-                data.insert(field_aliase.to_owned(), source_val.clone());
+                data.insert(aliase_name.clone(), source_val.clone());
             } else {
-                let aliase_val_opt = data.get(field_aliase);
+                let aliase_val_opt = data.get(aliase_name.as_str());
                 if let Some(aliase_val) = aliase_val_opt {
                     // insert (aliase, value) pair
-                    data.insert(key.to_owned(), aliase_val.clone());
+                    data.insert(aliase_name.clone(), aliase_val.clone());
                 }
             }
         }

@@ -3,10 +3,10 @@ use std::path::PathBuf;
 use calamine::{open_workbook, DataType, Range, Reader, Xlsx};
 
 use crate::field_aliase::AliaseMapper;
+use crate::utils::json_rows::{JsonRow, JsonRows};
 
 use super::cell::{CellData, CellType};
 use super::excel_rows::{ExcelRow, ExcelRows};
-use super::json_rows::{JsonRow, JsonRows};
 use super::title::{ExcelTitle, FieldInfo};
 
 const START_ROW: usize = 3_usize; // the 3th row

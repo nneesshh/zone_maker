@@ -3,8 +3,7 @@ use std::path::PathBuf;
 use serde_json::Value as Json;
 
 use crate::data_source::DataSource;
-
-use self::json_rows::JsonRows;
+use crate::utils::json_rows::JsonRows;
 
 ///
 pub mod cell;
@@ -13,7 +12,6 @@ pub mod title;
 
 ///
 pub mod excel_rows;
-pub mod json_rows;
 
 ///
 pub struct ExcelDataSource {
@@ -43,7 +41,7 @@ impl DataSource for ExcelDataSource {
     ///
     fn get_all_rows(&self) -> Vec<&serde_json::Map<String, Json>> {
         let mut v = Vec::with_capacity(self.json_rows.len());
-        for (_row, json_row) in &self.json_rows.row_table {
+        for (_row_idx, json_row) in &self.json_rows.row_table {
             //
             v.push(&json_row.value_table);
         }

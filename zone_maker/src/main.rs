@@ -56,7 +56,7 @@ struct ZoneMaker {
     )]
     zone_id: i32,
 
-    /// File path for log config
+    /// File path for output file path
     #[arg(
         short = 'o',
         long,
@@ -66,6 +66,17 @@ struct ZoneMaker {
         verbatim_doc_comment
     )]
     output_path: String,
+
+    /// Json patcher string for value patch
+    #[arg(
+        short = 'j',
+        long,
+        default_value = "{}",
+        value_name = "JSON_PATCH_STRING",
+        global = true,
+        verbatim_doc_comment
+    )]
+    json_patcher: String,
 
     /// File path for template
     #[arg(
@@ -121,6 +132,7 @@ fn main() {
     //
     let key_name = args.key_name.as_str();
     let zone_id = args.zone_id;
+    let j_patch = args.json_patcher.as_str();
     let template_file_path = PathBuf::from(&args.template_path);
     let output_file_path = PathBuf::from(&args.output_path);
 
@@ -153,6 +165,7 @@ fn main() {
             let formatter = formatter::mysql_formatter::MySqlFormatter::new(
                 key_name,
                 zone_id,
+                j_patch,
                 *mysql_addr,
                 template_file_path,
                 output_file_path,

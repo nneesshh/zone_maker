@@ -24,12 +24,13 @@ impl MySqlFormatter {
     pub fn new(
         key_name: &str,
         zone_id: i32,
+        j_patch: &str,
         db_addr: MySqlAddr,
         tpl_path: PathBuf,
         output_path: PathBuf,
     ) -> Self {
         // ds -- excel, read mysql data to json rows
-        let data_source = MySqlDataSource::new(key_name, db_addr);
+        let data_source = MySqlDataSource::new(key_name, j_patch, db_addr);
 
         // tpl -- read template to contents
         let template_contents = read_template_contents(&tpl_path);

@@ -1,13 +1,12 @@
 use serde_json::Value as Json;
 
-use crate::data_source::excel_data_source::json_rows::JsonRow;
 use crate::data_source::DataSource;
 use crate::db_access::{MySqlAccess, MySqlAddr};
 use crate::field_aliase::AliaseMapper;
 use crate::sqls;
+use crate::utils::json_row_patcher::JsonRowPatcher;
+use crate::utils::json_rows::{JsonRow, JsonRows};
 use crate::utils::mysql_util;
-
-use super::excel_data_source::json_rows::JsonRows;
 
 ///
 pub struct MySqlDataSource {
@@ -16,7 +15,7 @@ pub struct MySqlDataSource {
 
 impl MySqlDataSource {
     ///
-    pub fn new(key_name: &str, db_addr: MySqlAddr) -> Self {
+    pub fn new(key_name: &str, j_patch: &str, db_addr: MySqlAddr) -> Self {
         let url = std::format!(
             "mysql://{}:{}@{}:{}/{}",
             db_addr.user,
@@ -36,7 +35,7 @@ impl MySqlDataSource {
             }
         };
 
-        let json_rows = read_rows_from_db(key_name, &mut db);
+        let json_rows = read_rows_from_db(key_name, j_patch, &mut db);
 
         Self { json_rows }
     }
@@ -58,7 +57,7 @@ impl DataSource for MySqlDataSource {
     ///
     fn get_all_rows(&self) -> Vec<&serde_json::Map<String, Json>> {
         let mut v = Vec::with_capacity(self.json_rows.len());
-        for (_row, json_row) in &self.json_rows.row_table {
+        for (_row_idx, json_row) in &self.json_rows.row_table {
             //
             v.push(&json_row.value_table);
         }
@@ -66,11 +65,13 @@ impl DataSource for MySqlDataSource {
     }
 }
 
-fn read_rows_from_db(key_name: &str, db: &mut MySqlAccess) -> JsonRows {
+fn read_rows_from_db(key_name: &str, j_patch: &str, db: &mut MySqlAccess) -> JsonRows {
     let ret = db.exec_prepared_query(sqls::SQL_QUERY_ZONE_ALL, || None);
     assert!(ret.is_ok());
 
+    //
     let aliase_mapper = AliaseMapper::new();
+    let json_row_patcher = JsonRowPatcher::new(j_patch);
 
     //
     let mut json_rows = JsonRows {
@@ -117,6 +118,9 @@ fn read_rows_from_db(key_name: &str, db: &mut MySqlAccess) -> JsonRows {
         //
         row_idx += 1;
     }
+
+    //
+    json_row_patcher.update(key_name, &mut json_rows);
 
     json_rows
 }
